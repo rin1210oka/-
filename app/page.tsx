@@ -134,8 +134,12 @@ export default function Home() {
   function searchSyllabus(form: HTMLFormElement) {
     const data = new FormData(form);
     const code = String(data.get("courseCode") || "").trim();
-    const name = String(data.get("name") || "").trim();
-    const query = ["site:syllabus.ritsumei.ac.jp", code, name].filter(Boolean).join(" ");
+    if (!code) {
+      setNotice("先に授業コードを入力してください");
+      setTimeout(() => setNotice(""), 2200);
+      return;
+    }
+    const query = `site:syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus "${code}"`;
     window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
   }
 
@@ -225,8 +229,9 @@ export default function Home() {
           <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
           <div className="syllabus-field">
             <span>シラバスURL</span>
-            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>コードから探す ↗</button></div>
-            <small>立命館大学のシラバスを授業コード優先で検索します（情報理工学部・1回生向け）。</small>
+            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>公式シラバスを特定 ↗</button></div>
+            <small>授業コードだけで、立命館大学公式サイトの個別シラバス候補を絞り込みます。</small>
+            <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} /><span /></label>)}</div></fieldset>
