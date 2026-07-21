@@ -133,6 +133,17 @@ export default function Home() {
     setTimeout(() => setNotice(""), 2200);
   }
 
+  function clearCurrentSemester() {
+    if (!currentSemester || courses.length === 0) return;
+    const confirmed = window.confirm(
+      `${currentSemester.year}年度 ${currentSemester.term}の授業${courses.length}件をすべて削除します。\nこの操作は取り消せません。`,
+    );
+    if (!confirmed) return;
+    setCourses([]);
+    setNotice(`${currentSemester.year}年度 ${currentSemester.term}の授業をすべて削除しました`);
+    setTimeout(() => setNotice(""), 3200);
+  }
+
   async function searchSyllabus(form: HTMLFormElement) {
     const data = new FormData(form);
     const code = String(data.get("courseCode") || "").trim();
@@ -225,7 +236,10 @@ export default function Home() {
           </div>
           <div className="section-head">
             <div><p className="eyebrow">MY SCHEDULE</p><h2>{currentSemester?.year}年度 {currentSemester?.term}の時間割</h2></div>
-            <button className="view-button" onClick={() => setSemesterModal(true)}>セメスター追加 <span>＋</span></button>
+            <div className="section-actions">
+              <button className="view-button semester-clear" onClick={clearCurrentSemester} disabled={courses.length === 0}>この学期を一括削除</button>
+              <button className="view-button semester-add" onClick={() => setSemesterModal(true)}>セメスター追加 <span>＋</span></button>
+            </div>
           </div>
 
           <div className="mobile-days" role="tablist" aria-label="曜日">
