@@ -256,7 +256,7 @@ export default function Home() {
 
       <div className="content" id="top">
         <section className="welcome">
-          <div><p className="eyebrow">MONDAY · APR 15</p><h1>おはよう、<br /><span>今日もいい一日に。</span></h1></div>
+          <div><h1>おはよう、<br /><span>今日もいい一日に。</span></h1></div>
           <div className="day-count"><b>{todayCourses.length}</b><span>今日の授業</span></div>
         </section>
 
