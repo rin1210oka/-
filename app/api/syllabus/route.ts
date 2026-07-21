@@ -1,6 +1,14 @@
 const SYLLABUS_ORIGIN = "https://syllabus.ritsumei.ac.jp";
 const SITEMAP_NUMBERS = [44, 45, 46, 47, 48];
 
+// Some valid courses are intentionally absent from Salesforce's public
+// sitemap. Keep verified official URLs here so those courses still open
+// directly while the sitemap remains the general lookup source.
+const VERIFIED_COURSE_URLS: Record<string, string> = {
+  "2026:53109": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rx6uQAC/202653109?language=ja",
+  "2026:53265": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Ry4HQAS/202653265?language=ja",
+};
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -15,6 +23,10 @@ export async function GET(request: Request) {
   }
 
   const recordName = `${year}${code}`;
+  const verifiedUrl = VERIFIED_COURSE_URLS[`${year}:${code}`];
+  if (verifiedUrl) {
+    return Response.json({ found: true, url: verifiedUrl, recordName, source: "verified" });
+  }
   const exactCourseUrl = new RegExp(
     `<loc>(https://syllabus\\.ritsumei\\.ac\\.jp/syllabus/s/r-syllabus/[^<]+/${escapeRegExp(recordName)}\\?language=ja)</loc>`,
     "i",
