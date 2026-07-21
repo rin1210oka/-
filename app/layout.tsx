@@ -12,7 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
-    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+    manifest: "/manifest.webmanifest",
+    themeColor: "#1557ff",
+    appleWebApp: { capable: true, statusBarStyle: "default", title: "Campus Flow" },
+    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/favicon.svg" },
     openGraph: { title, description, images: [{ url: `${origin}/og.png`, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", title, description, images: [`${origin}/og.png`] },
   };

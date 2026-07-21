@@ -22,6 +22,11 @@ type Semester = {
   courses: Course[];
 };
 
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [
   ["1", "09:00", "10:35"],
@@ -57,6 +62,8 @@ export default function Home() {
   const [editing, setEditing] = useState<Course | null>(null);
   const [notice, setNotice] = useState("");
   const [syllabusLoading, setSyllabusLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
 
   useEffect(() => {
     const savedSemesters = localStorage.getItem("campus-flow-semesters");
@@ -81,6 +88,23 @@ export default function Home() {
     localStorage.setItem("campus-flow-semesters", JSON.stringify(semesters));
     localStorage.setItem("campus-flow-current-semester", currentSemesterId);
   }, [semesters, currentSemesterId]);
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const updateOnlineState = () => setIsOnline(navigator.onLine);
+    const captureInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
+    window.addEventListener("online", updateOnlineState);
+    window.addEventListener("offline", updateOnlineState);
+    window.addEventListener("beforeinstallprompt", captureInstallPrompt);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    return () => {
+      window.removeEventListener("online", updateOnlineState);
+      window.removeEventListener("offline", updateOnlineState);
+      window.removeEventListener("beforeinstallprompt", captureInstallPrompt);
+    };
+  }, []);
 
   const currentSemester = semesters.find((semester) => semester.id === currentSemesterId) || semesters[0];
   const courses = currentSemester?.courses || [];
@@ -91,6 +115,15 @@ export default function Home() {
       const nextCourses = typeof action === "function" ? action(semester.courses) : action;
       return { ...semester, courses: nextCourses };
     }));
+  }
+
+  async function installApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") setNotice("Campus Flowをホーム画面に追加しました");
+    setInstallPrompt(null);
+    setTimeout(() => setNotice(""), 3200);
   }
 
   const todayCourses = useMemo(
@@ -154,6 +187,11 @@ export default function Home() {
       setTimeout(() => setNotice(""), 2200);
       return;
     }
+    if (!isOnline) {
+      setNotice("オフライン中はシラバス自動入力を利用できません。接続後にもう一度お試しください");
+      setTimeout(() => setNotice(""), 4200);
+      return;
+    }
     const officialSearch = "https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja";
     setSyllabusLoading(true);
     setNotice(`授業コード「${code}」のシラバスを読み取っています…`);
@@ -210,6 +248,8 @@ export default function Home() {
     <main className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Campus Flow ホーム"><span className="brand-mark">CF</span><span>Campus <b>Flow</b></span></a>
+        {!isOnline && <div className="offline-badge" role="status">● オフライン</div>}
+        {installPrompt && <button className="install-app" onClick={installApp}>アプリとして追加</button>}
         <div className="term"><span className="term-dot" />{currentSemester?.year} {currentSemester?.term}</div>
         <button className="avatar" aria-label="プロフィール">RN</button>
       </header>
