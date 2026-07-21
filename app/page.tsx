@@ -230,8 +230,10 @@ export default function Home() {
         </section>
 
         <section className="schedule-section" id="schedule">
-          <div className="semester-switcher" role="tablist" aria-label="セメスター切り替え">
-            <div className="semester-tabs">{semesters.map((semester) => <button key={semester.id} role="tab" aria-selected={semester.id === currentSemesterId} onClick={() => setCurrentSemesterId(semester.id)}><b>{semester.year}</b><span>{semester.term.replace("セメスター", "")}</span><small>{semester.courses.length}科目</small></button>)}</div>
+          <div className="semester-switcher">
+            <label className="semester-select-wrap"><span>表示するセメスター</span><select value={currentSemesterId} onChange={(event) => setCurrentSemesterId(event.target.value)} aria-label="表示するセメスター">
+              {semesters.map((semester) => <option key={semester.id} value={semester.id}>{semester.year}年度 {semester.term}（{semester.courses.length}科目）</option>)}
+            </select></label>
             <button className="add-semester" onClick={() => setSemesterModal(true)}>＋ 新しいセメスター</button>
           </div>
           <div className="section-head">
