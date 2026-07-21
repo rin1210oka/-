@@ -324,8 +324,8 @@ export default function Home() {
           <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
           <div className="syllabus-field">
             <span>シラバスURL</span>
-            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" disabled={syllabusLoading} onClick={(event) => searchSyllabus(event.currentTarget.form!)}>{syllabusLoading ? "読み取り中…" : "シラバスから自動入力"}</button></div>
-            <small>授業コードから公式シラバスを読み取り、授業名・曜日・時限・施設・担当教員を自動入力します。</small>
+              <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" disabled={syllabusLoading} onClick={(event) => searchSyllabus(event.currentTarget.form!)}>{syllabusLoading ? "読み取り中…" : "授業コードで自動入力"}</button></div>
+              <small>授業コードを使って公式シラバスを読み取り、授業名・曜日・時限・施設・担当教員を自動入力します。</small>
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
