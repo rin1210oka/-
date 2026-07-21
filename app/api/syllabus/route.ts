@@ -1,5 +1,7 @@
+import syllabus2026 from "./syllabus-2026.json";
+
 const SYLLABUS_ORIGIN = "https://syllabus.ritsumei.ac.jp";
-const SITEMAP_NUMBERS = [44, 45, 46, 47, 48];
+const WEEKLY_SITEMAP = `${SYLLABUS_ORIGIN}/syllabus/s/sitemap-r_syllabus__c-weekly.xml`;
 
 // Some valid courses are intentionally absent from Salesforce's public
 // sitemap. Keep verified official URLs here so those courses still open
@@ -89,6 +91,7 @@ export async function GET(request: Request) {
 
   const recordName = `${year}${code}`;
   const verifiedUrl = VERIFIED_COURSE_URLS[`${year}:${code}`];
+  const indexedUrl = year === "2026" ? (syllabus2026 as Record<string, string>)[recordName] : undefined;
   const exactCourseUrl = new RegExp(
     `<loc>(https://syllabus\\.ritsumei\\.ac\\.jp/syllabus/s/r-syllabus/[^<]+/${escapeRegExp(recordName)}\\?language=ja)</loc>`,
     "i",
@@ -98,20 +101,16 @@ export async function GET(request: Request) {
     if (verifiedUrl) {
       return Response.json({ found: true, url: verifiedUrl, recordName, details: await readSyllabus(verifiedUrl, code) });
     }
-    const maps = await Promise.all(
-      SITEMAP_NUMBERS.map(async (number) => {
-        const response = await fetch(
-          `${SYLLABUS_ORIGIN}/syllabus/s/sitemap-r_syllabus__c-${number}.xml`,
-          { headers: { Accept: "application/xml" }, next: { revalidate: 3600 } },
-        );
-        return response.ok ? response.text() : "";
-      }),
-    );
-
-    for (const xml of maps) {
-      const match = xml.match(exactCourseUrl);
-      if (match) return Response.json({ found: true, url: match[1], recordName, details: await readSyllabus(match[1], code) });
+    if (indexedUrl) {
+      return Response.json({ found: true, url: indexedUrl, recordName, details: await readSyllabus(indexedUrl, code) });
     }
+    const weeklyResponse = await fetch(WEEKLY_SITEMAP, {
+      headers: { Accept: "application/xml" },
+      next: { revalidate: 1800 },
+    });
+    const weeklyXml = weeklyResponse.ok ? await weeklyResponse.text() : "";
+    const match = weeklyXml.match(exactCourseUrl);
+    if (match) return Response.json({ found: true, url: match[1], recordName, details: await readSyllabus(match[1], code) });
 
     return Response.json({ found: false, recordName });
   } catch {

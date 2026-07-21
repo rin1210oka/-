@@ -31,7 +31,13 @@ const PERIODS = [
   ["6", "18:25", "20:00"],
   ["7", "20:10", "21:45"],
 ];
-const COLORS = ["blue", "lime", "violet", "orange", "pink"];
+const COLORS = ["light-gray", "blue", "sky", "indigo", "violet", "lavender", "pink", "red", "orange", "peach", "yellow", "lime", "mint", "teal", "brown", "slate"];
+const COLOR_LABELS: Record<string, string> = {
+  "light-gray": "ライトグレー", blue: "ブルー", sky: "スカイ", indigo: "インディゴ",
+  violet: "バイオレット", lavender: "ラベンダー", pink: "ピンク", red: "レッド",
+  orange: "オレンジ", peach: "ピーチ", yellow: "イエロー", lime: "ライム",
+  mint: "ミント", teal: "ティール", brown: "ブラウン", slate: "スレート",
+};
 
 const INITIAL: Course[] = [];
 
@@ -93,7 +99,7 @@ export default function Home() {
   const next = todayCourses[1] || todayCourses[0];
 
   function openCourse(course?: Course, day = selectedDay, period = 1) {
-    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: COLORS[courses.length % COLORS.length], courseCode: "", syllabusUrl: "" });
+    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: "light-gray", courseCode: "", syllabusUrl: "" });
     setModal(true);
   }
 
@@ -264,7 +270,7 @@ export default function Home() {
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
-          <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} /><span /></label>)}</div></fieldset>
+          <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color} title={COLOR_LABELS[color]}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} aria-label={COLOR_LABELS[color]} /><span /></label>)}</div></fieldset>
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
         </form>
       </section></div>}
