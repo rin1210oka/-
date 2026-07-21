@@ -12,6 +12,7 @@ type Course = {
   color: string;
   courseCode?: string;
   syllabusUrl?: string;
+  note?: string;
 };
 
 type Semester = {
@@ -99,7 +100,7 @@ export default function Home() {
   const next = todayCourses[1] || todayCourses[0];
 
   function openCourse(course?: Course, day = selectedDay, period = 1) {
-    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: "light-gray", courseCode: "", syllabusUrl: "" });
+    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: "light-gray", courseCode: "", syllabusUrl: "", note: "" });
     setModal(true);
   }
 
@@ -115,6 +116,7 @@ export default function Home() {
       teacher: String(data.get("teacher")),
       courseCode: String(data.get("courseCode") || "").trim(),
       syllabusUrl: String(data.get("syllabusUrl") || "").trim(),
+      note: String(data.get("note") || "").trim(),
       day: Number(data.get("day")),
       period: Number(data.get("period")),
       color: String(data.get("color")),
@@ -244,10 +246,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mobile-days" role="tablist" aria-label="曜日">
-            {DAYS.map((day, i) => <button key={day} role="tab" aria-selected={selectedDay === i} onClick={() => setSelectedDay(i)}><span>{day}</span><small>{15 + i}</small></button>)}
-          </div>
-
           <div className="timetable desktop-table">
             <div className="corner">時限</div>
             {DAYS.map((d, i) => <button className={selectedDay === i ? "day-heading active" : "day-heading"} key={d} onClick={() => setSelectedDay(i)}><b>{d}</b><small>{15 + i}</small></button>)}
@@ -255,16 +253,21 @@ export default function Home() {
               <div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>
               {DAYS.map((_, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
-                return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.courseCode || course.room}</span>{course.syllabusUrl && <em>↗ シラバス</em>}</button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
+                return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.courseCode || course.room}</span>{course.syllabusUrl && <em>↗ シラバス</em>}{course.note && <em>● メモ</em>}</button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
               })}
             </div>)}
           </div>
 
-          <div className="mobile-list">
-            {PERIODS.map(([p, start, end]) => {
-              const course = courses.find((c) => c.day === selectedDay && c.period === Number(p));
-              return <div className="mobile-period" key={p}><div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>{course ? <button className={`mobile-course ${course.color}`} onClick={() => openCourse(course)}><span className="color-bar" /><span><b>{course.name}</b><small>{course.courseCode ? `${course.courseCode} · ` : ""}{course.room} · {course.teacher}</small>{course.syllabusUrl && <em>↗ シラバス登録済み</em>}</span><i>›</i></button> : <button className="mobile-empty" onClick={() => openCourse(undefined, selectedDay, Number(p))}>＋ 授業を追加</button>}</div>;
-            })}
+          <div className="mobile-week" aria-label="週間時間割">
+            <div className="mobile-week-corner">限</div>
+            {DAYS.map((day) => <div className="mobile-week-day" key={day}>{day}</div>)}
+            {PERIODS.map(([p]) => <div className="mobile-week-row" key={p}>
+              <div className="mobile-week-period">{p}</div>
+              {DAYS.map((dayName, day) => {
+                const course = courses.find((c) => c.day === day && c.period === Number(p));
+                return course ? <button key={dayName} className={`mobile-week-course ${course.color}`} onClick={() => openCourse(course)} aria-label={`${dayName}曜${p}限 ${course.name}を編集`}><b>{course.name}</b>{course.room && <small>{course.room}</small>}{course.note && <em>●</em>}</button> : <button key={dayName} className="mobile-week-empty" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${dayName}曜${p}限に授業を追加`}>＋</button>;
+              })}
+            </div>)}
           </div>
         </section>
       </div>
@@ -286,6 +289,7 @@ export default function Home() {
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
+          <label>メモ<textarea name="note" defaultValue={editing.note} rows={4} placeholder="課題、持ち物、試験日などを自由にメモ" /></label>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color} title={COLOR_LABELS[color]}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} aria-label={COLOR_LABELS[color]} /><span /></label>)}</div></fieldset>
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
         </form>
