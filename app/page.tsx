@@ -14,11 +14,13 @@ type Course = {
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [
-  ["1", "09:00"],
-  ["2", "10:40"],
-  ["3", "13:00"],
-  ["4", "14:40"],
-  ["5", "16:20"],
+  ["1", "09:00", "10:35"],
+  ["2", "10:45", "12:20"],
+  ["3", "13:10", "14:45"],
+  ["4", "14:55", "16:30"],
+  ["5", "16:40", "18:15"],
+  ["6", "18:25", "20:00"],
+  ["7", "20:10", "21:45"],
 ];
 const COLORS = ["blue", "lime", "violet", "orange", "pink"];
 
@@ -106,7 +108,7 @@ export default function Home() {
         <section className="next-card" aria-label="次の授業">
           <div className="next-copy">
             <div className="next-label"><span>●</span> NEXT CLASS</div>
-            <p className="next-time">{next ? `${PERIODS[next.period - 1][1]} – ${Number(PERIODS[next.period - 1][1].slice(0,2)) + 1}:30` : "今日は授業なし"}</p>
+            <p className="next-time">{next ? `${PERIODS[next.period - 1][1]} – ${PERIODS[next.period - 1][2]}` : "今日は授業なし"}</p>
             <h2>{next?.name || "自由な一日"}</h2>
             {next && <p className="next-meta">⌖ {next.room}<span>·</span>{next.teacher}</p>}
           </div>
@@ -127,8 +129,8 @@ export default function Home() {
           <div className="timetable desktop-table">
             <div className="corner">時限</div>
             {DAYS.map((d, i) => <button className={selectedDay === i ? "day-heading active" : "day-heading"} key={d} onClick={() => setSelectedDay(i)}><b>{d}</b><small>{15 + i}</small></button>)}
-            {PERIODS.map(([p, time]) => <div className="table-row" key={p}>
-              <div className="period"><b>{p}</b><small>{time}</small></div>
+            {PERIODS.map(([p, start, end]) => <div className="table-row" key={p}>
+              <div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>
               {DAYS.map((_, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
                 return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.room}</span></button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
@@ -137,9 +139,9 @@ export default function Home() {
           </div>
 
           <div className="mobile-list">
-            {PERIODS.map(([p, time]) => {
+            {PERIODS.map(([p, start, end]) => {
               const course = courses.find((c) => c.day === selectedDay && c.period === Number(p));
-              return <div className="mobile-period" key={p}><div className="period"><b>{p}</b><small>{time}</small></div>{course ? <button className={`mobile-course ${course.color}`} onClick={() => openCourse(course)}><span className="color-bar" /><span><b>{course.name}</b><small>{course.room} · {course.teacher}</small></span><i>›</i></button> : <button className="mobile-empty" onClick={() => openCourse(undefined, selectedDay, Number(p))}>＋ 授業を追加</button>}</div>;
+              return <div className="mobile-period" key={p}><div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>{course ? <button className={`mobile-course ${course.color}`} onClick={() => openCourse(course)}><span className="color-bar" /><span><b>{course.name}</b><small>{course.room} · {course.teacher}</small></span><i>›</i></button> : <button className="mobile-empty" onClick={() => openCourse(undefined, selectedDay, Number(p))}>＋ 授業を追加</button>}</div>;
             })}
           </div>
         </section>
@@ -152,7 +154,7 @@ export default function Home() {
         <div className="modal-head"><div><p className="eyebrow">COURSE DETAILS</p><h2 id="modal-title">{editing.id ? "授業を編集" : "新しい授業"}</h2></div><button onClick={() => setModal(false)} aria-label="閉じる">×</button></div>
         <form onSubmit={saveCourse}>
           <label>授業名<input name="name" defaultValue={editing.name} placeholder="例：データ構造" required /></label>
-          <div className="form-grid"><label>曜日<select name="day" defaultValue={editing.day}>{DAYS.map((d, i) => <option key={d} value={i}>{d}曜日</option>)}</select></label><label>時限<select name="period" defaultValue={editing.period}>{PERIODS.map(([p, t]) => <option key={p} value={p}>{p}限 · {t}</option>)}</select></label></div>
+          <div className="form-grid"><label>曜日<select name="day" defaultValue={editing.day}>{DAYS.map((d, i) => <option key={d} value={i}>{d}曜日</option>)}</select></label><label>時限<select name="period" defaultValue={editing.period}>{PERIODS.map(([p, start, end]) => <option key={p} value={p}>{p}限 · {start}–{end}</option>)}</select></label></div>
           <div className="form-grid"><label>教室<input name="room" defaultValue={editing.room} placeholder="情報棟 202" /></label><label>担当教員<input name="teacher" defaultValue={editing.teacher} placeholder="佐藤先生" /></label></div>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} /><span /></label>)}</div></fieldset>
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
