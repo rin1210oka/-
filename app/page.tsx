@@ -33,18 +33,7 @@ const PERIODS = [
 ];
 const COLORS = ["blue", "lime", "violet", "orange", "pink"];
 
-const INITIAL: Course[] = [
-  { id: 1, day: 0, period: 1, name: "英語コミュニケーション", room: "3号館 301", teacher: "田中先生", color: "violet" },
-  { id: 2, day: 0, period: 2, name: "データ構造", room: "情報棟 202", teacher: "佐藤先生", color: "blue" },
-  { id: 3, day: 0, period: 4, name: "経済学入門", room: "1号館 105", teacher: "鈴木先生", color: "lime" },
-  { id: 4, day: 1, period: 1, name: "線形代数", room: "2号館 204", teacher: "高橋先生", color: "orange" },
-  { id: 5, day: 1, period: 3, name: "プログラミング演習", room: "情報棟 401", teacher: "伊藤先生", color: "pink" },
-  { id: 6, day: 2, period: 2, name: "統計学", room: "2号館 202", teacher: "山本先生", color: "lime" },
-  { id: 7, day: 2, period: 4, name: "心理学", room: "1号館 201", teacher: "渡辺先生", color: "violet" },
-  { id: 8, day: 3, period: 1, name: "キャリアデザイン", room: "講堂 B", teacher: "中村先生", color: "blue" },
-  { id: 9, day: 3, period: 3, name: "情報倫理", room: "情報棟 303", teacher: "小林先生", color: "orange" },
-  { id: 10, day: 4, period: 2, name: "ゼミナール", room: "研究棟 12", teacher: "加藤先生", color: "pink" },
-];
+const INITIAL: Course[] = [];
 
 const INITIAL_SEMESTERS: Semester[] = [
   { id: "2026-spring", year: 2026, term: "春セメスター", courses: INITIAL },
@@ -65,7 +54,13 @@ export default function Home() {
     const savedSemesters = localStorage.getItem("campus-flow-semesters");
     const savedCurrent = localStorage.getItem("campus-flow-current-semester");
     if (savedSemesters) {
-      setSemesters(JSON.parse(savedSemesters));
+      const parsed = JSON.parse(savedSemesters) as Semester[];
+      // Earlier versions shipped ten sample classes with IDs 1–10. Remove only
+      // those built-in records while preserving anything the user added.
+      setSemesters(parsed.map((semester) => ({
+        ...semester,
+        courses: semester.courses.filter((course) => course.id > 10),
+      })));
       if (savedCurrent) setCurrentSemesterId(savedCurrent);
     } else {
       const oldCourses = localStorage.getItem("campus-flow-courses");
@@ -139,13 +134,8 @@ export default function Home() {
       setTimeout(() => setNotice(""), 2200);
       return;
     }
-    try {
-      await navigator.clipboard.writeText(code);
-      setNotice("授業コードをコピーしました。公式検索欄に貼り付けてください");
-    } catch {
-      setNotice(`公式検索欄に「${code}」を貼り付けてください`);
-    }
-    window.open("https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja", "_blank", "noopener,noreferrer");
+    setNotice(`授業コード「${code}」で公式シラバスを開きます`);
+    window.open(`https://syllabus.ritsumei.ac.jp/syllabus/s/global-search/${encodeURIComponent(code)}?language=ja`, "_blank", "noopener,noreferrer");
     setTimeout(() => setNotice(""), 4200);
   }
 
@@ -231,12 +221,12 @@ export default function Home() {
         <form onSubmit={saveCourse}>
           <label>授業名<input name="name" defaultValue={editing.name} placeholder="例：データ構造" required /></label>
           <div className="form-grid"><label>曜日<select name="day" defaultValue={editing.day}>{DAYS.map((d, i) => <option key={d} value={i}>{d}曜日</option>)}</select></label><label>時限<select name="period" defaultValue={editing.period}>{PERIODS.map(([p, start, end]) => <option key={p} value={p}>{p}限 · {start}–{end}</option>)}</select></label></div>
-          <div className="form-grid"><label>教室<input name="room" defaultValue={editing.room} placeholder="情報棟 202" /></label><label>担当教員<input name="teacher" defaultValue={editing.teacher} placeholder="佐藤先生" /></label></div>
+          <div className="form-grid"><label>授業施設<input name="room" defaultValue={editing.room} placeholder="例：OIC" /></label><label>担当教員<input name="teacher" defaultValue={editing.teacher} placeholder="例：加藤 正輝" /></label></div>
           <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
           <div className="syllabus-field">
             <span>シラバスURL</span>
-            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>コードをコピーして公式検索 ↗</button></div>
-            <small>公式検索画面が開いたら、検索欄に貼り付けるだけで授業を特定できます。</small>
+            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>コードでシラバス検索 ↗</button></div>
+            <small>授業コードを入れて押すと、そのコードで立命館大学の公式シラバス検索を直接開きます。</small>
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
