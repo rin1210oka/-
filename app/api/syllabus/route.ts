@@ -6,7 +6,18 @@ const SITEMAP_NUMBERS = [44, 45, 46, 47, 48];
 // directly while the sitemap remains the general lookup source.
 const VERIFIED_COURSE_URLS: Record<string, string> = {
   "2026:53109": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rx6uQAC/202653109?language=ja",
+  "2026:53118": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RxHEQA0/202653118?language=ja",
   "2026:53265": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Ry4HQAS/202653265?language=ja",
+  "2026:53271": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RyBhQAK/202653271?language=ja",
+  "2026:53283": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RyNJQA0/202653283?language=ja",
+  "2026:53290": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RyS9QAK/202653290?language=ja",
+  "2026:53299": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwjbQAC/202653299?language=ja",
+  "2026:53302": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rwo7QAC/202653302?language=ja",
+  "2026:53318": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rx5yQAC/202653318?language=ja",
+  "2026:53321": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rx8sQAC/202653321?language=ja",
+  "2026:53323": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RxAoQAK/202653323?language=ja",
+  "2026:54501": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rxw6QAC/202654501?language=ja",
+  "2026:54601": "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Ry2ZQAS/202654601?language=ja",
 };
 
 function escapeRegExp(value: string) {
