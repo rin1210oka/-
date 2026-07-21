@@ -10,6 +10,8 @@ type Course = {
   room: string;
   teacher: string;
   color: string;
+  courseCode?: string;
+  syllabusUrl?: string;
 };
 
 const DAYS = ["月", "火", "水", "木", "金"];
@@ -59,7 +61,7 @@ export default function Home() {
   const next = todayCourses[1] || todayCourses[0];
 
   function openCourse(course?: Course, day = selectedDay, period = 1) {
-    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: COLORS[courses.length % COLORS.length] });
+    setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: COLORS[courses.length % COLORS.length], courseCode: "", syllabusUrl: "" });
     setModal(true);
   }
 
@@ -73,6 +75,8 @@ export default function Home() {
       name: String(data.get("name")),
       room: String(data.get("room")),
       teacher: String(data.get("teacher")),
+      courseCode: String(data.get("courseCode") || "").trim(),
+      syllabusUrl: String(data.get("syllabusUrl") || "").trim(),
       day: Number(data.get("day")),
       period: Number(data.get("period")),
       color: String(data.get("color")),
@@ -89,6 +93,14 @@ export default function Home() {
     setModal(false);
     setNotice("授業を削除しました");
     setTimeout(() => setNotice(""), 2200);
+  }
+
+  function searchSyllabus(form: HTMLFormElement) {
+    const data = new FormData(form);
+    const code = String(data.get("courseCode") || "").trim();
+    const name = String(data.get("name") || "").trim();
+    const query = ["site:syllabus.ritsumei.ac.jp", code, name].filter(Boolean).join(" ");
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -133,7 +145,7 @@ export default function Home() {
               <div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>
               {DAYS.map((_, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
-                return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.room}</span></button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
+                return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.courseCode || course.room}</span>{course.syllabusUrl && <em>↗ シラバス</em>}</button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
               })}
             </div>)}
           </div>
@@ -141,7 +153,7 @@ export default function Home() {
           <div className="mobile-list">
             {PERIODS.map(([p, start, end]) => {
               const course = courses.find((c) => c.day === selectedDay && c.period === Number(p));
-              return <div className="mobile-period" key={p}><div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>{course ? <button className={`mobile-course ${course.color}`} onClick={() => openCourse(course)}><span className="color-bar" /><span><b>{course.name}</b><small>{course.room} · {course.teacher}</small></span><i>›</i></button> : <button className="mobile-empty" onClick={() => openCourse(undefined, selectedDay, Number(p))}>＋ 授業を追加</button>}</div>;
+              return <div className="mobile-period" key={p}><div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>{course ? <button className={`mobile-course ${course.color}`} onClick={() => openCourse(course)}><span className="color-bar" /><span><b>{course.name}</b><small>{course.courseCode ? `${course.courseCode} · ` : ""}{course.room} · {course.teacher}</small>{course.syllabusUrl && <em>↗ シラバス登録済み</em>}</span><i>›</i></button> : <button className="mobile-empty" onClick={() => openCourse(undefined, selectedDay, Number(p))}>＋ 授業を追加</button>}</div>;
             })}
           </div>
         </section>
@@ -156,6 +168,13 @@ export default function Home() {
           <label>授業名<input name="name" defaultValue={editing.name} placeholder="例：データ構造" required /></label>
           <div className="form-grid"><label>曜日<select name="day" defaultValue={editing.day}>{DAYS.map((d, i) => <option key={d} value={i}>{d}曜日</option>)}</select></label><label>時限<select name="period" defaultValue={editing.period}>{PERIODS.map(([p, start, end]) => <option key={p} value={p}>{p}限 · {start}–{end}</option>)}</select></label></div>
           <div className="form-grid"><label>教室<input name="room" defaultValue={editing.room} placeholder="情報棟 202" /></label><label>担当教員<input name="teacher" defaultValue={editing.teacher} placeholder="佐藤先生" /></label></div>
+          <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
+          <div className="syllabus-field">
+            <span>シラバスURL</span>
+            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>コードから探す ↗</button></div>
+            <small>立命館大学のシラバスを授業コード優先で検索します（情報理工学部・1回生向け）。</small>
+            {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
+          </div>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} /><span /></label>)}</div></fieldset>
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
         </form>
