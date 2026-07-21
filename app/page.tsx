@@ -136,9 +136,8 @@ export default function Home() {
       return;
     }
     const officialSearch = "https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja";
-    const newTab = window.open("about:blank", "_blank");
     setSyllabusLoading(true);
-    setNotice(`授業コード「${code}」の詳細ページを探しています`);
+    setNotice(`授業コード「${code}」のシラバスを読み取っています…`);
     try {
       const response = await fetch(`/api/syllabus?code=${encodeURIComponent(code)}&year=${currentSemester.year}`);
       const result = await response.json();
@@ -146,19 +145,28 @@ export default function Home() {
       if (result.found && result.url) {
         const urlInput = form.elements.namedItem("syllabusUrl") as HTMLInputElement | null;
         if (urlInput) urlInput.value = result.url;
-        setEditing((old) => old ? { ...old, syllabusUrl: result.url } : old);
-        if (newTab) newTab.location.href = result.url;
-        else window.open(result.url, "_blank", "noopener,noreferrer");
-        setNotice("公式シラバスを特定して開きました");
+        const details = result.details as Partial<Course> | null;
+        if (details) {
+          const fields: Array<keyof Pick<Course, "name" | "room" | "teacher" | "courseCode">> = ["name", "room", "teacher", "courseCode"];
+          for (const field of fields) {
+            const input = form.elements.namedItem(field) as HTMLInputElement | null;
+            const value = details[field];
+            if (input && typeof value === "string" && value) input.value = value;
+          }
+          const day = form.elements.namedItem("day") as HTMLSelectElement | null;
+          const period = form.elements.namedItem("period") as HTMLSelectElement | null;
+          if (day && typeof details.day === "number" && details.day <= 4) day.value = String(details.day);
+          if (period && typeof details.period === "number") period.value = String(details.period);
+        }
+        setEditing((old) => old ? { ...old, ...details, syllabusUrl: result.url } : old);
+        setNotice(details ? "シラバスから授業情報を自動入力しました" : "シラバスを登録しました。残りの項目は手入力してください");
       } else {
-        if (newTab) newTab.location.href = officialSearch;
-        else window.open(officialSearch, "_blank", "noopener,noreferrer");
+        window.open(officialSearch, "_blank", "noopener,noreferrer");
         setNotice("詳細ページを特定できなかったため、公式検索画面を開きました");
       }
     } catch {
-      if (newTab) newTab.location.href = officialSearch;
-      else window.open(officialSearch, "_blank", "noopener,noreferrer");
-      setNotice("公式サイトへ到達できなかったため、検索画面を開きました");
+      window.open(officialSearch, "_blank", "noopener,noreferrer");
+      setNotice("シラバスを読み取れなかったため、公式検索画面を開きました");
     } finally {
       setSyllabusLoading(false);
       setTimeout(() => setNotice(""), 4200);
@@ -251,8 +259,8 @@ export default function Home() {
           <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
           <div className="syllabus-field">
             <span>シラバスURL</span>
-            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" disabled={syllabusLoading} onClick={(event) => searchSyllabus(event.currentTarget.form!)}>{syllabusLoading ? "特定中…" : "コードから直接開く ↗"}</button></div>
-            <small>授業コードから2026年度の公式シラバス詳細ページを特定し、URLを自動入力して直接開きます。</small>
+            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" disabled={syllabusLoading} onClick={(event) => searchSyllabus(event.currentTarget.form!)}>{syllabusLoading ? "読み取り中…" : "シラバスから自動入力"}</button></div>
+            <small>授業コードから公式シラバスを読み取り、授業名・曜日・時限・施設・担当教員を自動入力します。</small>
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>

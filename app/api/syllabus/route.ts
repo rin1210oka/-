@@ -24,6 +24,60 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function decodeHtml(value: string) {
+  const named: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (_, entity: string) => {
+    if (!entity.startsWith("#")) return named[entity.toLowerCase()] ?? "";
+    const hex = entity[1]?.toLowerCase() === "x";
+    const number = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10);
+    return Number.isFinite(number) ? String.fromCodePoint(number) : "";
+  });
+}
+
+function textOnly(value: string) {
+  return decodeHtml(value.replace(/<script\b[\s\S]*?<\/script>/gi, " ").replace(/<style\b[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractLabelValue(html: string, label: string) {
+  const pattern = new RegExp(
+    `<span[^>]*class="[^"]*slds-form-element__label[^"]*"[^>]*>\\s*${escapeRegExp(label)}\\s*</span>[\\s\\S]{0,900}?<div[^>]*class="[^"]*slds-form-element__static[^"]*"[^>]*>([\\s\\S]*?)</div>`,
+    "i",
+  );
+  return textOnly(html.match(pattern)?.[1] || "");
+}
+
+function parseSyllabus(html: string, fallbackCode: string) {
+  const firstTable = html.match(/<table\b[\s\S]*?<\/table>/i)?.[0] || "";
+  const rows = [...firstTable.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((row) =>
+    [...row[1].matchAll(/<(?:th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)].map((cell) => textOnly(cell[1])),
+  );
+  const values = rows.find((row) => row.length >= 6 && /^\d+[:：]/.test(row[0] || ""));
+  if (!values) return null;
+  const course = values[0].match(/^([^:：]+)[:：]\s*(.+)$/);
+  const schedule = values[3]?.match(/([月火水木金土日])(?:曜)?\s*([1-7])/);
+  const dayMap: Record<string, number> = { 月: 0, 火: 1, 水: 2, 木: 3, 金: 4, 土: 5, 日: 6 };
+  return {
+    courseCode: course?.[1]?.trim() || fallbackCode,
+    name: course?.[2]?.trim() || "",
+    teacher: values[5] || "",
+    day: schedule ? dayMap[schedule[1]] : null,
+    period: schedule ? Number(schedule[2]) : null,
+    room: extractLabelValue(html, "授業施設"),
+    campus: extractLabelValue(html, "キャンパス"),
+    term: values[2] || "",
+  };
+}
+
+async function readSyllabus(url: string, code: string) {
+  const response = await fetch(url, {
+    headers: { Accept: "text/html", "User-Agent": "Googlebot" },
+    next: { revalidate: 86400 },
+  });
+  return response.ok ? parseSyllabus(await response.text(), code) : null;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
@@ -35,15 +89,15 @@ export async function GET(request: Request) {
 
   const recordName = `${year}${code}`;
   const verifiedUrl = VERIFIED_COURSE_URLS[`${year}:${code}`];
-  if (verifiedUrl) {
-    return Response.json({ found: true, url: verifiedUrl, recordName, source: "verified" });
-  }
   const exactCourseUrl = new RegExp(
     `<loc>(https://syllabus\\.ritsumei\\.ac\\.jp/syllabus/s/r-syllabus/[^<]+/${escapeRegExp(recordName)}\\?language=ja)</loc>`,
     "i",
   );
 
   try {
+    if (verifiedUrl) {
+      return Response.json({ found: true, url: verifiedUrl, recordName, details: await readSyllabus(verifiedUrl, code) });
+    }
     const maps = await Promise.all(
       SITEMAP_NUMBERS.map(async (number) => {
         const response = await fetch(
@@ -56,7 +110,7 @@ export async function GET(request: Request) {
 
     for (const xml of maps) {
       const match = xml.match(exactCourseUrl);
-      if (match) return Response.json({ found: true, url: match[1], recordName });
+      if (match) return Response.json({ found: true, url: match[1], recordName, details: await readSyllabus(match[1], code) });
     }
 
     return Response.json({ found: false, recordName });
