@@ -46,7 +46,6 @@ button { color:inherit; }
 .corner { height:67px; padding:25px 10px; text-align:center; color:#a0a8ba; font-size:10px; font-weight:800; }
 .day-heading { border:0; border-left:1px solid var(--line); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; }
 .day-heading b { font-size:14px; }
-.day-heading small { color:#9aa3b6; margin-top:3px; }
 .day-heading.active b { color:var(--blue); }
 .desktop-table { display:grid; grid-template-columns:70px repeat(5,1fr); }
 .table-row { display:contents; }

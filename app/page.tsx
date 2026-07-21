@@ -248,7 +248,7 @@ export default function Home() {
 
           <div className="timetable desktop-table">
             <div className="corner">時限</div>
-            {DAYS.map((d, i) => <button className={selectedDay === i ? "day-heading active" : "day-heading"} key={d} onClick={() => setSelectedDay(i)}><b>{d}</b><small>{15 + i}</small></button>)}
+            {DAYS.map((d, i) => <button className={selectedDay === i ? "day-heading active" : "day-heading"} key={d} onClick={() => setSelectedDay(i)}><b>{d}</b></button>)}
             {PERIODS.map(([p, start, end]) => <div className="table-row" key={p}>
               <div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>
               {DAYS.map((_, day) => {
