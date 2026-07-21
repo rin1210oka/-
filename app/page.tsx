@@ -131,7 +131,7 @@ export default function Home() {
     setTimeout(() => setNotice(""), 2200);
   }
 
-  function searchSyllabus(form: HTMLFormElement) {
+  async function searchSyllabus(form: HTMLFormElement) {
     const data = new FormData(form);
     const code = String(data.get("courseCode") || "").trim();
     if (!code) {
@@ -139,8 +139,14 @@ export default function Home() {
       setTimeout(() => setNotice(""), 2200);
       return;
     }
-    const query = `site:syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus "${code}"`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
+    try {
+      await navigator.clipboard.writeText(code);
+      setNotice("授業コードをコピーしました。公式検索欄に貼り付けてください");
+    } catch {
+      setNotice(`公式検索欄に「${code}」を貼り付けてください`);
+    }
+    window.open("https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja", "_blank", "noopener,noreferrer");
+    setTimeout(() => setNotice(""), 4200);
   }
 
   function saveSemester(event: FormEvent<HTMLFormElement>) {
@@ -229,8 +235,8 @@ export default function Home() {
           <label>授業コード<input name="courseCode" defaultValue={editing.courseCode} placeholder="例：ABC12345" /></label>
           <div className="syllabus-field">
             <span>シラバスURL</span>
-            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>公式シラバスを特定 ↗</button></div>
-            <small>授業コードだけで、立命館大学公式サイトの個別シラバス候補を絞り込みます。</small>
+            <div className="syllabus-tools"><input type="url" name="syllabusUrl" defaultValue={editing.syllabusUrl} placeholder="https://…" /><button type="button" onClick={(event) => searchSyllabus(event.currentTarget.form!)}>コードをコピーして公式検索 ↗</button></div>
+            <small>公式検索画面が開いたら、検索欄に貼り付けるだけで授業を特定できます。</small>
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
