@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 
 type Course = {
   id: number;
@@ -12,6 +12,13 @@ type Course = {
   color: string;
   courseCode?: string;
   syllabusUrl?: string;
+};
+
+type Semester = {
+  id: string;
+  year: number;
+  term: "春セメスター" | "秋セメスター";
+  courses: Course[];
 };
 
 const DAYS = ["月", "火", "水", "木", "金"];
@@ -39,20 +46,49 @@ const INITIAL: Course[] = [
   { id: 10, day: 4, period: 2, name: "ゼミナール", room: "研究棟 12", teacher: "加藤先生", color: "pink" },
 ];
 
+const INITIAL_SEMESTERS: Semester[] = [
+  { id: "2026-spring", year: 2026, term: "春セメスター", courses: INITIAL },
+  { id: "2026-fall", year: 2026, term: "秋セメスター", courses: [] },
+];
+
 export default function Home() {
-  const [courses, setCourses] = useState<Course[]>(INITIAL);
+  const hydrated = useRef(false);
+  const [semesters, setSemesters] = useState<Semester[]>(INITIAL_SEMESTERS);
+  const [currentSemesterId, setCurrentSemesterId] = useState("2026-spring");
   const [selectedDay, setSelectedDay] = useState(0);
   const [modal, setModal] = useState(false);
+  const [semesterModal, setSemesterModal] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("campus-flow-courses");
-    if (saved) setCourses(JSON.parse(saved));
+    const savedSemesters = localStorage.getItem("campus-flow-semesters");
+    const savedCurrent = localStorage.getItem("campus-flow-current-semester");
+    if (savedSemesters) {
+      setSemesters(JSON.parse(savedSemesters));
+      if (savedCurrent) setCurrentSemesterId(savedCurrent);
+    } else {
+      const oldCourses = localStorage.getItem("campus-flow-courses");
+      if (oldCourses) setSemesters(INITIAL_SEMESTERS.map((semester) => semester.id === "2026-spring" ? { ...semester, courses: JSON.parse(oldCourses) } : semester));
+    }
+    hydrated.current = true;
   }, []);
   useEffect(() => {
-    localStorage.setItem("campus-flow-courses", JSON.stringify(courses));
-  }, [courses]);
+    if (!hydrated.current) return;
+    localStorage.setItem("campus-flow-semesters", JSON.stringify(semesters));
+    localStorage.setItem("campus-flow-current-semester", currentSemesterId);
+  }, [semesters, currentSemesterId]);
+
+  const currentSemester = semesters.find((semester) => semester.id === currentSemesterId) || semesters[0];
+  const courses = currentSemester?.courses || [];
+
+  function setCourses(action: SetStateAction<Course[]>) {
+    setSemesters((old) => old.map((semester) => {
+      if (semester.id !== currentSemesterId) return semester;
+      const nextCourses = typeof action === "function" ? action(semester.courses) : action;
+      return { ...semester, courses: nextCourses };
+    }));
+  }
 
   const todayCourses = useMemo(
     () => courses.filter((c) => c.day === selectedDay).sort((a, b) => a.period - b.period),
@@ -103,11 +139,25 @@ export default function Home() {
     window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
   }
 
+  function saveSemester(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const year = Number(data.get("year"));
+    const term = String(data.get("term")) as Semester["term"];
+    const id = `${year}-${term === "春セメスター" ? "spring" : "fall"}`;
+    const existing = semesters.find((semester) => semester.id === id);
+    if (!existing) setSemesters((old) => [...old, { id, year, term, courses: [] }].sort((a, b) => b.year - a.year || a.term.localeCompare(b.term, "ja")));
+    setCurrentSemesterId(id);
+    setSemesterModal(false);
+    setNotice(existing ? `${year}年度 ${term}に切り替えました` : `${year}年度 ${term}を追加しました`);
+    setTimeout(() => setNotice(""), 2200);
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Campus Flow ホーム"><span className="brand-mark">CF</span><span>Campus <b>Flow</b></span></a>
-        <div className="term"><span className="term-dot" />2026 前期</div>
+        <div className="term"><span className="term-dot" />{currentSemester?.year} {currentSemester?.term}</div>
         <button className="avatar" aria-label="プロフィール">RN</button>
       </header>
 
@@ -129,9 +179,13 @@ export default function Home() {
         </section>
 
         <section className="schedule-section" id="schedule">
+          <div className="semester-switcher" role="tablist" aria-label="セメスター切り替え">
+            <div className="semester-tabs">{semesters.map((semester) => <button key={semester.id} role="tab" aria-selected={semester.id === currentSemesterId} onClick={() => setCurrentSemesterId(semester.id)}><b>{semester.year}</b><span>{semester.term.replace("セメスター", "")}</span><small>{semester.courses.length}科目</small></button>)}</div>
+            <button className="add-semester" onClick={() => setSemesterModal(true)}>＋ 新しいセメスター</button>
+          </div>
           <div className="section-head">
-            <div><p className="eyebrow">MY SCHEDULE</p><h2>今週の時間割</h2></div>
-            <button className="view-button" onClick={() => setNotice("曜日を選んで授業を確認できます")}>週表示 <span>⌄</span></button>
+            <div><p className="eyebrow">MY SCHEDULE</p><h2>{currentSemester?.year}年度 {currentSemester?.term}の時間割</h2></div>
+            <button className="view-button" onClick={() => setSemesterModal(true)}>セメスター追加 <span>＋</span></button>
           </div>
 
           <div className="mobile-days" role="tablist" aria-label="曜日">
@@ -177,6 +231,15 @@ export default function Home() {
           </div>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} /><span /></label>)}</div></fieldset>
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
+        </form>
+      </section></div>}
+      {semesterModal && <div className="modal-backdrop" onMouseDown={() => setSemesterModal(false)}><section className="modal semester-modal" role="dialog" aria-modal="true" aria-labelledby="semester-title" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="modal-head"><div><p className="eyebrow">NEW SEMESTER</p><h2 id="semester-title">セメスターを追加</h2></div><button onClick={() => setSemesterModal(false)} aria-label="閉じる">×</button></div>
+        <form onSubmit={saveSemester}>
+          <label>年度<input name="year" type="number" min="2020" max="2100" defaultValue="2026" required /></label>
+          <label>セメスター<select name="term" defaultValue="春セメスター"><option>春セメスター</option><option>秋セメスター</option></select></label>
+          <p className="semester-note">追加した時間割は端末に保存され、いつでも切り替えて見返せます。</p>
+          <div className="form-actions semester-actions"><span /><button className="save" type="submit">追加して切り替える</button></div>
         </form>
       </section></div>}
       {notice && <div className="toast" role="status">✓ {notice}</div>}
