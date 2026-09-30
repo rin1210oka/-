@@ -160,6 +160,41 @@ export default function Home() {
     setTimeout(() => setNotice(""), 2200);
   }
 
+  function transferCourse(form: HTMLFormElement, mode: "copy" | "move") {
+    if (!editing?.id) return;
+    const data = new FormData(form);
+    const targetSemesterId = String(data.get("targetSemester") || "");
+    const targetSemester = semesters.find((semester) => semester.id === targetSemesterId);
+    if (!targetSemester || targetSemesterId === currentSemesterId) {
+      setNotice("移動先のセメスターを選んでください");
+      setTimeout(() => setNotice(""), 2200);
+      return;
+    }
+    const transferred: Course = {
+      ...editing,
+      id: mode === "copy" ? Date.now() : editing.id,
+      name: String(data.get("name")),
+      room: String(data.get("room")),
+      teacher: String(data.get("teacher")),
+      courseCode: String(data.get("courseCode") || "").trim(),
+      syllabusUrl: String(data.get("syllabusUrl") || "").trim(),
+      note: String(data.get("note") || "").trim(),
+      day: Number(data.get("day")),
+      period: Number(data.get("period")),
+      color: String(data.get("color")),
+    };
+    setSemesters((old) => old.map((semester) => {
+      if (semester.id === targetSemesterId) return { ...semester, courses: [...semester.courses, transferred] };
+      if (mode === "move" && semester.id === currentSemesterId) {
+        return { ...semester, courses: semester.courses.filter((course) => course.id !== editing.id) };
+      }
+      return semester;
+    }));
+    setModal(false);
+    setNotice(`${targetSemester.year}年度 ${targetSemester.term}へ${mode === "copy" ? "コピー" : "移動"}しました`);
+    setTimeout(() => setNotice(""), 3200);
+  }
+
   function removeCourse() {
     if (!editing?.id) return;
     setCourses((old) => old.filter((c) => c.id !== editing.id));
@@ -331,6 +366,14 @@ export default function Home() {
           </div>
           <label>メモ<textarea name="note" defaultValue={editing.note} rows={4} placeholder="課題、持ち物、試験日などを自由にメモ" /></label>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color} title={COLOR_LABELS[color]}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} aria-label={COLOR_LABELS[color]} /><span /></label>)}</div></fieldset>
+          {editing.id && semesters.length > 1 && <section className="semester-transfer" aria-labelledby="semester-transfer-title">
+            <div><b id="semester-transfer-title">別のセメスターへ</b><small>入力内容をそのままコピー、または移動できます。</small></div>
+            <select name="targetSemester" defaultValue="" aria-label="移動先のセメスター">
+              <option value="" disabled>移動先を選択</option>
+              {semesters.filter((semester) => semester.id !== currentSemesterId).map((semester) => <option key={semester.id} value={semester.id}>{semester.year}年度 {semester.term}</option>)}
+            </select>
+            <div className="transfer-actions"><button type="button" onClick={(event) => transferCourse(event.currentTarget.form!, "copy")}>コピー</button><button type="button" className="move" onClick={(event) => transferCourse(event.currentTarget.form!, "move")}>移動</button></div>
+          </section>}
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
         </form>
       </section></div>}
