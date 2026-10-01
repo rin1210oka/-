@@ -321,8 +321,8 @@ export default function Home() {
           <div className="mobile-week" aria-label="週間時間割">
             <div className="mobile-week-corner">限</div>
             {DAYS.map((day) => <div className="mobile-week-day" key={day}>{day}</div>)}
-            {PERIODS.map(([p]) => <div className="mobile-week-row" key={p}>
-              <div className="mobile-week-period">{p}</div>
+            {PERIODS.map(([p, start, end]) => <div className="mobile-week-row" key={p}>
+              <div className="mobile-week-period"><b>{p}</b><span>{start}</span><span>{end}</span></div>
               {DAYS.map((dayName, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
                 return course ? <button key={dayName} className={`mobile-week-course ${course.color}${(course.writtenExamPercent || 0) > 0 ? " written-exam" : ""}`} onClick={() => openCourse(course)} aria-label={`${dayName}曜${p}限 ${course.name}を編集${(course.writtenExamPercent || 0) > 0 ? `、定期試験（筆記）${course.writtenExamPercent}%` : ""}`}><b>{course.name}</b>{course.room && <small>{course.room}</small>}{course.note && <em>●</em>}</button> : <button key={dayName} className="mobile-week-empty" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${dayName}曜${p}限に授業を追加`}>＋</button>;
