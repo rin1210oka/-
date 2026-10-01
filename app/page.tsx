@@ -348,10 +348,6 @@ export default function Home() {
             <a href="https://syllabus.ritsumei.ac.jp/syllabus/s/" target="_blank" rel="noopener noreferrer">公式の検索画面を開く ↗</a>
             {editing.syllabusUrl && <a href={editing.syllabusUrl} target="_blank" rel="noopener noreferrer">登録済みのシラバスを開く ↗</a>}
           </div>
-          <section className="course-note-space" aria-labelledby="course-note-title">
-            <div className="course-note-head"><div><span className="note-icon" aria-hidden="true">✎</span><b id="course-note-title">授業メモ</b></div><small>この授業だけに保存されます</small></div>
-            <textarea name="note" defaultValue={editing.note} rows={7} placeholder={"課題、持ち物、試験日、先生からの連絡などを自由に記録できます。\n\n例：次回までに演習問題3を解く"} aria-label="授業メモ" />
-          </section>
           <fieldset><legend>カラー</legend><div className="color-options">{COLORS.map((color) => <label key={color} className={color} title={COLOR_LABELS[color]}><input type="radio" name="color" value={color} defaultChecked={editing.color === color} aria-label={COLOR_LABELS[color]} /><span /></label>)}</div></fieldset>
           {editing.id && semesters.length > 1 && <section className="semester-transfer" aria-labelledby="semester-transfer-title">
             <div><b id="semester-transfer-title">別のセメスターへ</b><small>入力内容をそのままコピー、または移動できます。</small></div>
@@ -362,6 +358,10 @@ export default function Home() {
             <div className="transfer-actions"><button type="button" onClick={(event) => transferCourse(event.currentTarget.form!, "copy")}>コピー</button><button type="button" className="move" onClick={(event) => transferCourse(event.currentTarget.form!, "move")}>移動</button></div>
           </section>}
           <div className="form-actions">{editing.id ? <button type="button" className="delete" onClick={removeCourse}>削除</button> : <span />}<button className="save" type="submit">{editing.id ? "変更を保存" : "授業を追加"}</button></div>
+          <section className="course-note-space" aria-labelledby="course-note-title">
+            <div className="course-note-head"><div><span className="note-icon" aria-hidden="true">✎</span><b id="course-note-title">授業メモ</b></div><small>この授業だけに保存されます</small></div>
+            <textarea name="note" defaultValue={editing.note} rows={7} placeholder={"課題、持ち物、試験日、先生からの連絡などを自由に記録できます。\n\n例：次回までに演習問題3を解く"} aria-label="授業メモ" />
+          </section>
         </form>
       </section></div>}
       {semesterModal && <div className="modal-backdrop" onMouseDown={() => setSemesterModal(false)}><section className="modal semester-modal" role="dialog" aria-modal="true" aria-labelledby="semester-title" onMouseDown={(e) => e.stopPropagation()}>
