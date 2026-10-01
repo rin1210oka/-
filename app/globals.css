@@ -55,9 +55,8 @@ button { color:inherit; }
 .period b { font-size:18px; }
 .period small { color:#9ba4b6; font-size:9px; margin-top:3px; }
 .course, .empty-course { border:0; border-left:1px solid var(--line); padding:10px; cursor:pointer; text-align:left; transition:.18s ease; }
-.course.written-exam, .mobile-week-course.written-exam { border:3px solid #111!important; }
-.course.written-exam.exam-join-left, .mobile-week-course.written-exam.exam-join-left { border-left-width:0!important; }
-.course.written-exam.exam-join-top, .mobile-week-course.written-exam.exam-join-top { border-top-width:0!important; }
+.course { position:relative; }
+.course.written-exam::after, .mobile-week-course.written-exam::after { content:""; position:absolute; inset:-1.5px; z-index:2; border:3px solid #111; pointer-events:none; }
 .course:hover, .mobile-course:hover { transform:translateY(-2px); filter:saturate(1.1); }
 .course b { display:block; font-size:12px; line-height:1.35; }
 .course span { display:block; color:#566077; font-size:9px; margin-top:7px; }
