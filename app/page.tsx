@@ -13,6 +13,7 @@ type Course = {
   courseCode?: string;
   syllabusUrl?: string;
   note?: string;
+  writtenExamPercent?: number;
 };
 
 type Semester = {
@@ -312,7 +313,7 @@ export default function Home() {
               <div className="period"><b>{p}</b><small>{start}</small><small>– {end}</small></div>
               {DAYS.map((_, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
-                return course ? <button key={day} className={`course ${course.color}`} onClick={() => openCourse(course)}><b>{course.name}</b><span>{course.courseCode || course.room}</span>{course.syllabusUrl && <em>↗ シラバス</em>}{course.note && <em>● メモ</em>}</button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
+                return course ? <button key={day} className={`course ${course.color}${(course.writtenExamPercent || 0) > 0 ? " written-exam" : ""}`} onClick={() => openCourse(course)} aria-label={`${course.name}${(course.writtenExamPercent || 0) > 0 ? `、定期試験（筆記）${course.writtenExamPercent}%` : ""}`}><b>{course.name}</b><span>{course.courseCode || course.room}</span>{course.syllabusUrl && <em>↗ シラバス</em>}{course.note && <em>● メモ</em>}</button> : <button key={day} className="empty-course" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${DAYS[day]}曜${p}限に授業を追加`}>＋</button>;
               })}
             </div>)}
           </div>
@@ -324,7 +325,7 @@ export default function Home() {
               <div className="mobile-week-period">{p}</div>
               {DAYS.map((dayName, day) => {
                 const course = courses.find((c) => c.day === day && c.period === Number(p));
-                return course ? <button key={dayName} className={`mobile-week-course ${course.color}`} onClick={() => openCourse(course)} aria-label={`${dayName}曜${p}限 ${course.name}を編集`}><b>{course.name}</b>{course.room && <small>{course.room}</small>}{course.note && <em>●</em>}</button> : <button key={dayName} className="mobile-week-empty" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${dayName}曜${p}限に授業を追加`}>＋</button>;
+                return course ? <button key={dayName} className={`mobile-week-course ${course.color}${(course.writtenExamPercent || 0) > 0 ? " written-exam" : ""}`} onClick={() => openCourse(course)} aria-label={`${dayName}曜${p}限 ${course.name}を編集${(course.writtenExamPercent || 0) > 0 ? `、定期試験（筆記）${course.writtenExamPercent}%` : ""}`}><b>{course.name}</b>{course.room && <small>{course.room}</small>}{course.note && <em>●</em>}</button> : <button key={dayName} className="mobile-week-empty" onClick={() => openCourse(undefined, day, Number(p))} aria-label={`${dayName}曜${p}限に授業を追加`}>＋</button>;
               })}
             </div>)}
           </div>

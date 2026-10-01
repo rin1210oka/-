@@ -60,6 +60,11 @@ function parseSyllabus(html: string, fallbackCode: string) {
   const course = values[0].match(/^([^:：]+)[:：]\s*(.+)$/);
   const schedule = values[3]?.match(/([月火水木金土日])(?:曜)?\s*([1-7])/);
   const dayMap: Record<string, number> = { 月: 0, 火: 1, 水: 2, 木: 3, 金: 4, 土: 5, 日: 6 };
+  const allRows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((row) =>
+    [...row[1].matchAll(/<(?:th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)].map((cell) => textOnly(cell[1])),
+  );
+  const writtenExam = allRows.find((row) => /^定期試験[（(]筆記[）)]/.test(row[0] || ""));
+  const writtenExamPercent = writtenExam ? Number.parseFloat((writtenExam[1] || "").replace(/[^0-9.]/g, "")) : 0;
   return {
     courseCode: course?.[1]?.trim() || fallbackCode,
     name: course?.[2]?.trim() || "",
@@ -69,6 +74,7 @@ function parseSyllabus(html: string, fallbackCode: string) {
     room: extractLabelValue(html, "授業施設"),
     campus: extractLabelValue(html, "キャンパス"),
     term: values[2] || "",
+    writtenExamPercent: Number.isFinite(writtenExamPercent) ? writtenExamPercent : 0,
   };
 }
 
