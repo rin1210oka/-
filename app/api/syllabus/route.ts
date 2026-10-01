@@ -43,11 +43,37 @@ function textOnly(value: string) {
 }
 
 function extractLabelValue(html: string, label: string) {
-  const pattern = new RegExp(
-    `<span[^>]*class="[^"]*slds-form-element__label[^"]*"[^>]*>\\s*${escapeRegExp(label)}\\s*</span>[\\s\\S]{0,900}?<div[^>]*class="[^"]*slds-form-element__static[^"]*"[^>]*>([\\s\\S]*?)</div>`,
-    "i",
-  );
-  return textOnly(html.match(pattern)?.[1] || "");
+  // Salesforce has used both span and div labels on this page. Match the
+  // label by its visible text instead of relying on one exact tag shape.
+  const labels = [...html.matchAll(/<(span|div)\b[^>]*class=["'][^"']*(?:slds-form-element__label|syllabus-field__label)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi)];
+  for (const match of labels) {
+    if (textOnly(match[2]) !== label) continue;
+    const tail = html.slice((match.index || 0) + match[0].length, (match.index || 0) + match[0].length + 2400);
+    const value = tail.match(/<div\b[^>]*class=["'][^"']*slds-form-element__static[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    // The page renders the same value twice (print and screen variants).
+    // Prefer the print node so a room such as "H347セミナールーム" is not
+    // returned as "H347セミナールーム H347セミナールーム".
+    const printValue = value?.[1].match(/<span\b[^>]*class=["'][^"']*syllabus-field__print-text[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+    const parsed = textOnly(printValue?.[1] || value?.[1] || "");
+    if (parsed) return parsed;
+  }
+
+  // Fallback for table/dl-like variants and future markup changes. Block
+  // boundaries are retained so a neighboring field can never be mistaken
+  // for the requested value.
+  const visibleLines = decodeHtml(
+    html
+      .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+      .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(?:div|p|li|section|article|tr|td|th|dt|dd|span)>/gi, "\n")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const lineIndex = visibleLines.findIndex((line) => line === label);
+  return lineIndex >= 0 ? (visibleLines[lineIndex + 1] || "") : "";
 }
 
 function parseSyllabus(html: string, fallbackCode: string) {
@@ -63,8 +89,12 @@ function parseSyllabus(html: string, fallbackCode: string) {
   const allRows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((row) =>
     [...row[1].matchAll(/<(?:th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi)].map((cell) => textOnly(cell[1])),
   );
-  const writtenExam = allRows.find((row) => /^定期試験[（(]筆記[）)]/.test(row[0] || ""));
-  const writtenExamPercent = writtenExam ? Number.parseFloat((writtenExam[1] || "").replace(/[^0-9.]/g, "")) : 0;
+  const writtenExam = allRows.find((row) => /^定期試験\s*[（(]\s*筆記\s*[）)]/.test(row[0] || ""));
+  // The percentage column contains a bare number (for example "80"), not
+  // necessarily a percent sign. Requiring "%" made valid written exams look
+  // absent, so accept the first numeric assessment cell only.
+  const percentage = writtenExam?.slice(1).find((cell) => /^\s*\d+(?:\.\d+)?\s*%?\s*$/.test(cell));
+  const writtenExamPercent = percentage ? Number.parseFloat(percentage.replace(/[^0-9.]/g, "")) : 0;
   return {
     courseCode: course?.[1]?.trim() || fallbackCode,
     name: course?.[2]?.trim() || "",

@@ -250,7 +250,12 @@ export default function Home() {
           if (day && typeof details.day === "number" && details.day <= 4) day.value = String(details.day);
           if (period && typeof details.period === "number") period.value = String(details.period);
         }
-        setEditing((old) => old ? { ...old, ...details, syllabusUrl: result.url } : old);
+        // Never replace a value already entered by the user with an empty
+        // parser result when the university changes one part of its markup.
+        const usableDetails = details
+          ? Object.fromEntries(Object.entries(details).filter(([, value]) => value !== "" && value !== null && value !== undefined))
+          : {};
+        setEditing((old) => old ? { ...old, ...usableDetails, syllabusUrl: result.url } : old);
         setNotice(details ? "シラバスから授業情報を自動入力しました" : "シラバスを登録しました。残りの項目は手入力してください");
       } else {
         window.open(officialSearch, "_blank", "noopener,noreferrer");
