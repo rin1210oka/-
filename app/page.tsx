@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, SetStateAction, useEffect, useRef, useState } from "react";
 
 type Course = {
   id: number;
@@ -64,6 +64,9 @@ export default function Home() {
   const [syllabusLoading, setSyllabusLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [showIosInstall, setShowIosInstall] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const savedSemesters = localStorage.getItem("campus-flow-semesters");
@@ -90,6 +93,8 @@ export default function Home() {
   }, [semesters, currentSemesterId]);
   useEffect(() => {
     setIsOnline(navigator.onLine);
+    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent));
+    setIsStandalone(window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
     const updateOnlineState = () => setIsOnline(navigator.onLine);
     const captureInstallPrompt = (event: Event) => {
       event.preventDefault();
@@ -125,12 +130,6 @@ export default function Home() {
     setInstallPrompt(null);
     setTimeout(() => setNotice(""), 3200);
   }
-
-  const todayCourses = useMemo(
-    () => courses.filter((c) => c.day === selectedDay).sort((a, b) => a.period - b.period),
-    [courses, selectedDay]
-  );
-  const next = todayCourses[1] || todayCourses[0];
 
   function openCourse(course?: Course, day = selectedDay, period = 1) {
     setEditing(course || { id: 0, day, period, name: "", room: "", teacher: "", color: "light-gray", courseCode: "", syllabusUrl: "", note: "" });
@@ -285,27 +284,12 @@ export default function Home() {
         <a className="brand" href="#top" aria-label="Campus Flow ホーム"><span className="brand-mark">CF</span><span>Campus <b>Flow</b></span></a>
         {!isOnline && <div className="offline-badge" role="status">● オフライン</div>}
         {installPrompt && <button className="install-app" onClick={installApp}>アプリとして追加</button>}
+        {isIos && !isStandalone && <button className="install-app" onClick={() => setShowIosInstall(true)}>ホーム画面に追加</button>}
         <div className="term"><span className="term-dot" />{currentSemester?.year} {currentSemester?.term}</div>
         <button className="avatar" aria-label="プロフィール">RN</button>
       </header>
 
       <div className="content" id="top">
-        <section className="welcome">
-          <div><h1>おはよう、<br /><span>今日もいい一日に。</span></h1></div>
-          <div className="day-count"><b>{todayCourses.length}</b><span>今日の授業</span></div>
-        </section>
-
-        <section className="next-card" aria-label="次の授業">
-          <div className="next-copy">
-            <div className="next-label"><span>●</span> NEXT CLASS</div>
-            <p className="next-time">{next ? `${PERIODS[next.period - 1][1]} – ${PERIODS[next.period - 1][2]}` : "今日は授業なし"}</p>
-            <h2>{next?.name || "自由な一日"}</h2>
-            {next && <p className="next-meta">⌖ {next.room}<span>·</span>{next.teacher}</p>}
-          </div>
-          <button className="arrow-button" onClick={() => next && openCourse(next)} aria-label="次の授業を編集">↗</button>
-          <div className="lime-orbit" />
-        </section>
-
         <section className="schedule-section" id="schedule">
           <div className="semester-switcher">
             <label className="semester-select-wrap"><span>表示するセメスター</span><select value={currentSemesterId} onChange={(event) => setCurrentSemesterId(event.target.value)} aria-label="表示するセメスター">
@@ -385,6 +369,12 @@ export default function Home() {
           <p className="semester-note">追加した時間割は端末に保存され、いつでも切り替えて見返せます。</p>
           <div className="form-actions semester-actions"><span /><button className="save" type="submit">追加して切り替える</button></div>
         </form>
+      </section></div>}
+      {showIosInstall && <div className="modal-backdrop" onMouseDown={() => setShowIosInstall(false)}><section className="modal install-guide" role="dialog" aria-modal="true" aria-labelledby="install-title" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="modal-head"><div><p className="eyebrow">IPHONE</p><h2 id="install-title">ホーム画面に追加</h2></div><button onClick={() => setShowIosInstall(false)} aria-label="閉じる">×</button></div>
+        <ol><li>Safariでこのページを開きます</li><li>画面下の共有ボタン <b>□↑</b> を押します</li><li><b>「ホーム画面に追加」</b>を選びます</li><li>右上の<b>「追加」</b>を押します</li></ol>
+        <p>追加したアイコンから開くと、すぐ時間割が表示されます。</p>
+        <button className="guide-close" onClick={() => setShowIosInstall(false)}>わかった</button>
       </section></div>}
       {notice && <div className="toast" role="status">✓ {notice}</div>}
     </main>
